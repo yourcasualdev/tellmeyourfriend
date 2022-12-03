@@ -16,12 +16,6 @@ datasource db {
   referentialIntegrity = "prisma"
 }
 
-model Example {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
 // Necessary for Next auth
 model Account {
   id                String  @id @default(cuid())
@@ -61,6 +55,7 @@ model User {
   image         String?
   accounts      Account[]
   sessions      Session[]
+  Game          Game[]
 
   @@map("users")
 }
@@ -72,4 +67,66 @@ model VerificationToken {
 
   @@unique([identifier, token])
   @@map("verificationtokens")
+}
+
+model Example {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+//game example model
+model Game {
+  id        String     @id @default(cuid())
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  name      String
+  questions Question[] //one to many relationship
+  User      User?      @relation(fields: [userId], references: [id])
+  userId    String?
+  Player    Player[]
+}
+
+model Question {
+  id           String         @id @default(cuid())
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  question     String
+  game         Game           @relation(fields: [gameId], references: [id])
+  gameId       String
+  answers      Answer[]
+  PlayerAnswer PlayerAnswer[]
+}
+
+model Answer {
+  id           String         @id @default(cuid())
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  answer       String
+  question     Question       @relation(fields: [questionId], references: [id])
+  questionId   String
+  isCorrect    Boolean
+  PlayerAnswer PlayerAnswer[]
+}
+
+model Player {
+  id           String         @id @default(cuid())
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  name         String
+  Game         Game           @relation(fields: [gameId], references: [id])
+  gameId       String
+  PlayerAnswer PlayerAnswer[]
+}
+
+model PlayerAnswer {
+  id         String   @id @default(cuid())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  answerId   String
+  answer     Answer   @relation(fields: [answerId], references: [id])
+  Player     Player   @relation(fields: [playerId], references: [id])
+  playerId   String
+  Question   Question @relation(fields: [questionId], references: [id])
+  questionId String
 }
