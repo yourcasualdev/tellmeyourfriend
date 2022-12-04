@@ -2,73 +2,81 @@ import { type NextPage } from "next";
 import Head from "next/head";
 import Link from "next/link";
 import { signIn, signOut, useSession } from "next-auth/react";
+import { useState } from "react";
+import type { z } from "zod";
 
 import { trpc } from "../../utils/trpc";
-import { useState } from "react";
+import useQuestion from "../../hooks/useQuestion";
+import type { createGameInputType } from "../../types/game";
+
+type createGame = z.infer<typeof createGameInputType>;
 
 
 const Dashboard: NextPage = () => {
     const createGame = trpc.game.createGame.useMutation();
 
-    const games = trpc.game.getAll.useQuery();
-
-    const [questions, setQuestions] = useState([
-        {
-            question: "Selam naber",
-            answers: [
-                {
-                    answer: "iyiyim",
-                    isCorrect: false,
-                },
-                {
-                    answer: "Kötüyum",
-                    isCorrect: true,
-                },
-            ],
-        },
-    ]);
-
-    const addQuestion = () => {
-        setQuestions([
-            ...questions,
+    const [currentQuestion, setCurrentQuestion] = useState<createGame["questions"][0]>({
+        question: "",
+        answers: [
             {
-                question: "",
-                answers: [
-                    {
-                        answer: "",
-                        isCorrect: false,
-                    },
-                    {
-                        answer: "",
-                        isCorrect: false,
-                    },
-                ],
-            },
-        ]);
+                answer: "",
+                isCorrect: false,
+            }
+        ],
+    });
+
+    const addAnswer = () => {
+        setCurrentQuestion({
+            ...currentQuestion,
+            answers: [...currentQuestion.answers, { answer: "", isCorrect: false }],
+        });
     };
 
-    const [gameName, setGameName] = useState("Hello this is a game");
+    const changeAnswer = (index: number, answer: createGame["questions"][0]["answers"][0]) => {
+        const answers = currentQuestion.answers;
+        answers[index] = answer;
+        setCurrentQuestion({
+            ...currentQuestion,
+            answers,
+        });
+    }
+
+    const changeCorrectAnswer = (index: number) => {
+        const answers = currentQuestion.answers;
+        answers.forEach((answer, i) => {
+            if (i === index) {
+                answer.isCorrect = true;
+            } else {
+                answer.isCorrect = false;
+            }
+        });
+        setCurrentQuestion({
+            ...currentQuestion,
+            answers,
+        });
+    }
+
+    const removeAnswer = (index: number) => {
+        const answers = currentQuestion.answers;
+        answers.splice(index, 1);
+        setCurrentQuestion({
+            ...currentQuestion,
+            answers,
+        });
+    }
+
+    const changeQuestionName = (question: string) => {
+        setCurrentQuestion({
+            ...currentQuestion,
+            question,
+        });
+    };
+
+    const [questions, addQuestion, changeQuestion, changeName, removeQuestion] = useQuestion();
 
     const createGameHandler = async () => {
-        await createGame.mutateAsync({
-            name: gameName,
-            questions: [
-                {
-                    question: "test",
-                    answers: [
-                        {
-                            answer: "test",
-                            isCorrect: true,
-                        },
-                        {
-                            answer: "test",
-                            isCorrect: false,
-                        }
-                    ]
-                },
-            ],
-        });
-        games.refetch();
+        const response = await createGame.mutateAsync(questions);
+        window.location.href = `/dashboard/games/${response.game.id}`;
     };
 
     return (
@@ -84,15 +92,66 @@ const Dashboard: NextPage = () => {
                 </div>
                 <div className="p-4">
                     <h1 className="font-mono font-medium text-gray-400">Create Your Game</h1>
-                    <input className="font-bold text-xl w-10/12 decoration-white over" placeholder={gameName} />
+                    <input className="font-bold text-xl w-10/12 decoration-white over" placeholder={'nas'} value={questions.name} onChange={(e) => changeName(e.target.value)} />
                 </div>
                 <div className="p-4">
-                    <div className="">
-                        <button className="bg-yellow-300 p-3 rounded-md ">Add Question</button>
-                    </div>
                     <div>
+                        <input type="text" placeholder="Ask a question" value={currentQuestion.question} onChange={(e) => changeQuestionName(e.target.value)} />
+                        {currentQuestion.answers.map((answer, index) => (
+                            <div key={index + 1234}>
+                                <input type="text" placeholder={`Answer ${index + 1}`} value={answer.answer} onChange={e => changeAnswer(index, { answer: e.target.value, isCorrect: answer.isCorrect })} />
+                                <button onClick={() => changeCorrectAnswer(index)}>{answer.isCorrect ? "True Answer" : "False Answer"}</button>
+                                <button
+                                    onClick={() => {
+                                        console.log("add answer");
+                                        removeAnswer(index);
+                                    }}
+                                    className="bg-red-800 text-white rounded-md px-1 py-1"
+                                >Remove Answer</button>
+                            </div>
+                        ))}
+                        <button
+                            onClick={() => {
+                                addAnswer()
+                            }}
+                            className="bg-purple-800 text-white rounded-md px-2 py-1"
+                        >Add Answer</button>
                     </div>
+                    <button
+                        onClick={() => {
+                            addQuestion(currentQuestion);
+                        }}
+                        className="bg-green-800 text-white rounded-md px-2 py-1"
+                    >Make Question</button>
                 </div>
+                <div className="questions ">
+                    {questions.questions.map((question, index) => (
+                        <div key={index + 2234}>
+                            <div className="p-4">
+                                <h1 className="font-mono font-medium text-gray-400">Question {index + 1}</h1>
+                                <h2 className="font-mono font-medium text-gray-400">{question.question}</h2>
+                                <div className="flex flex-col">
+                                    {question.answers.map((answer, index) => (
+                                        <div key={index + 3234}>
+                                            <h2 className="font-mono font-medium text-gray-400">{answer.answer}</h2>
+                                        </div>
+
+                                    ))}
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        removeQuestion(index);
+                                    }}
+                                    className="bg-red-800 text-white rounded-md px-1 py-1"
+                                >Remove Question</button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+                <button
+                    className="bg-purple-800 text-white rounded-md px-2 py-1"
+                    onClick={() => createGameHandler()}
+                >Create Game</button>
             </main>
         </>
     );

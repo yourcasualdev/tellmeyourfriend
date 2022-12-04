@@ -41,7 +41,7 @@ export const gameRouter = router({
         .mutation(async ({ input, ctx }) => {
             const userID = ctx.session.user.id
 
-            await prisma.game.create({
+            const game = await prisma.game.create({
                 data: {
                     name: input.name,
                     userId: userID,
@@ -60,7 +60,7 @@ export const gameRouter = router({
             });
 
             return {
-                message: `Game created for user ${userID}`,
+                game: game
             };
         }
         ),

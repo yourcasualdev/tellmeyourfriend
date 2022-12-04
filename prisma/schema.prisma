@@ -85,6 +85,8 @@ model Game {
   User      User?      @relation(fields: [userId], references: [id])
   userId    String?
   Player    Player[]
+
+  @@map("games")
 }
 
 model Question {
@@ -96,6 +98,8 @@ model Question {
   gameId       String
   answers      Answer[]
   PlayerAnswer PlayerAnswer[]
+
+  @@map("questions")
 }
 
 model Answer {
@@ -107,6 +111,8 @@ model Answer {
   questionId   String
   isCorrect    Boolean
   PlayerAnswer PlayerAnswer[]
+
+  @@map("answers")
 }
 
 model Player {
